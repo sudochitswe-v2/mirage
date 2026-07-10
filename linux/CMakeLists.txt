@@ -4,10 +4,10 @@ project(runner LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "distro_mimic")
-# The unique GTK application identifier for this application. See:
-# https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "com.example.distro_mimic")
+set(BINARY_NAME "mirage")
+# The application ID, used for creating the window and the desktop file
+# Should be in the format com.example.my_app
+set(APPLICATION_ID "com.example.mirage")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

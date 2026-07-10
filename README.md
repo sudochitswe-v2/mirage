@@ -1,4 +1,4 @@
-# distro_mimic
+# Mirage
 
 A new Flutter project.
 

@@ -8,23 +8,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:distro_mimic/main.dart';
+import 'package:mirage/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('App UI smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const CodeTantraSpooferApp());
+    await tester.pumpWidget(const MirageApp());
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Verify that the title and basic UI elements exist.
+    expect(find.text('Mirage'), findsOneWidget);
+    expect(find.text('System State'), findsOneWidget);
+    expect(find.text('/etc/os-release'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify the buttons exist.
+    expect(find.text('Restore Native OS'), findsOneWidget);
+    expect(find.text('Spoof to Ubuntu'), findsOneWidget);
   });
 }

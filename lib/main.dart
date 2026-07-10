@@ -1,19 +1,18 @@
 import 'dart:io';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 void main() {
-  runApp(const CodeTantraSpooferApp());
+  runApp(const MirageApp());
 }
 
-class CodeTantraSpooferApp extends StatelessWidget {
-  const CodeTantraSpooferApp({super.key});
+class MirageApp extends StatelessWidget {
+  const MirageApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'OS Spoofer for CodeTantra',
+      title: 'Mirage',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF0F172A),
@@ -33,21 +32,20 @@ class CodeTantraSpooferApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0F172A),
       ),
       themeMode: ThemeMode.system,
-      home: const SpooferHomePage(),
+      home: const HomePage(),
     );
   }
 }
 
-class SpooferHomePage extends StatefulWidget {
-  const SpooferHomePage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<SpooferHomePage> createState() => _SpooferHomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _SpooferHomePageState extends State<SpooferHomePage> {
+class _HomePageState extends State<HomePage> {
   bool _isSpoofed = false;
-  bool _isAppRunning = false;
   String _currentOsReleaseInfo = 'Loading...';
   bool _isLoading = false;
 
@@ -143,15 +141,17 @@ DISTRIB_DESCRIPTION="Ubuntu 24.04 LTS"''';
       }
 
       if (selectedWrapper != null) {
-        final result = await Process.run(
-          selectedWrapper, 
-          ['sh', '-c', command],
-          runInShell: true,
-        );
-        
+        final result = await Process.run(selectedWrapper, [
+          'sh',
+          '-c',
+          command,
+        ], runInShell: true);
+
         if (result.exitCode != 0) {
-          _showErrorDialog('Command Failed ($selectedWrapper)', 
-              'Exit Code: ${result.exitCode}\n\nError:\n${result.stderr}\n\nOutput:\n${result.stdout}');
+          _showErrorDialog(
+            'Command Failed ($selectedWrapper)',
+            'Exit Code: ${result.exitCode}\n\nError:\n${result.stderr}\n\nOutput:\n${result.stdout}',
+          );
           return false;
         }
         return true;
@@ -170,38 +170,41 @@ DISTRIB_DESCRIPTION="Ubuntu 24.04 LTS"''';
       if (askPassTool != null) {
         final tempDir = await Directory.systemTemp.createTemp('askpass');
         final askPassScript = File('${tempDir.path}/askpass.sh');
-        
+
         final dialogCmd = askPassTool.endsWith('kdialog')
-            ? 'kdialog --password "Root privileges are required to override OS release files for CodeTantra."'
+            ? 'kdialog --password "Root privileges are required to override OS release files."'
             : 'zenity --password --title="Authentication Required"';
-            
+
         await askPassScript.writeAsString('#!/bin/sh\n$dialogCmd\n');
         await Process.run('chmod', ['+x', askPassScript.path]);
 
         final result = await Process.run(
-          'sudo', 
+          'sudo',
           ['-A', 'sh', '-c', command],
           environment: {'SUDO_ASKPASS': askPassScript.path},
           runInShell: true,
         );
-        
+
         try {
           await tempDir.delete(recursive: true);
         } catch (_) {}
 
         if (result.exitCode != 0) {
-          _showErrorDialog('Command Failed (sudo -A)', 
-              'Exit Code: ${result.exitCode}\n\nError:\n${result.stderr}\n\nOutput:\n${result.stdout}');
+          _showErrorDialog(
+            'Command Failed (sudo -A)',
+            'Exit Code: ${result.exitCode}\n\nError:\n${result.stderr}\n\nOutput:\n${result.stdout}',
+          );
           return false;
         }
         return true;
       }
 
-      _showErrorDialog('Missing Dependency', 
-          'Could not find a graphical privilege escalation tool (pkexec, kdesu, etc.) AND could not find fallback GUI dialogs (kdialog, zenity).\n'
-          'Please install policykit-1, kdesu, or zenity to continue.');
+      _showErrorDialog(
+        'Missing Dependency',
+        'Could not find a graphical privilege escalation tool (pkexec, kdesu, etc.) AND could not find fallback GUI dialogs (kdialog, zenity).\n'
+            'Please install policykit-1, kdesu, or zenity to continue.',
+      );
       return false;
-
     } catch (e) {
       _showErrorDialog('Execution Error', e.toString());
       return false;
@@ -213,7 +216,8 @@ DISTRIB_DESCRIPTION="Ubuntu 24.04 LTS"''';
       _isLoading = true;
     });
 
-    final script = '''
+    final script =
+        '''
 # Backup step
 cp /etc/os-release /etc/os-release.bak
 [ -f /etc/lsb-release ] && cp /etc/lsb-release /etc/lsb-release.bak
@@ -267,79 +271,23 @@ mv /etc/os-release.bak /etc/os-release
     }
   }
 
-  Future<String?> _findCodeTantraBinary() async {
-    final possibleNames = ['codetantra-sea', 'codetantra', 'CodeTantra'];
-    for (final name in possibleNames) {
-      try {
-        final result = await Process.run('sh', ['-c', 'command -v $name']);
-        if (result.exitCode == 0) {
-          final path = result.stdout.toString().trim();
-          if (path.isNotEmpty) return path;
-        }
-      } catch (e) {
-        // Continue to the next name if command -v fails
-      }
-    }
-    return null;
-  }
-
-  Future<void> _launchCodeTantra() async {
-    try {
-      if (!_isSpoofed) {
-        await _spoofOs();
-        if (!_isSpoofed) {
-          return; // Spoofing failed or user cancelled
-        }
-      }
-
-      final binaryPath = await _findCodeTantraBinary();
-      if (binaryPath == null) {
-        _showErrorDialog('Executable Not Found', 'Could not find CodeTantra executable in PATH. Please ensure it is installed.');
-        return;
-      }
-
-      setState(() {
-        _isAppRunning = true;
-      });
-
-      final process = await Process.start(binaryPath, [], runInShell: true);
-      process.exitCode.then((code) async {
-        if (mounted) {
-          setState(() {
-            _isAppRunning = false;
-          });
-          // Cleanup
-          await _restoreOs();
-        }
-      });
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isAppRunning = false;
-        });
-        _showErrorDialog('Failed to Launch', e.toString());
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-    final textColor = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
-    final subtleTextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor = isDark
+        ? const Color(0xFF334155)
+        : const Color(0xFFE2E8F0);
+    final textColor = isDark
+        ? const Color(0xFFF8FAFC)
+        : const Color(0xFF0F172A);
+    final subtleTextColor = isDark
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF64748B);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('OS Spoofer for CodeTantra', style: TextStyle(fontWeight: FontWeight.w600)),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
@@ -350,15 +298,22 @@ mv /etc/os-release.bak /etc/os-release
               children: [
                 // Status Header
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 24,
+                  ),
                   decoration: BoxDecoration(
                     color: _isSpoofed
-                        ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5))
+                        ? (isDark
+                              ? const Color(0xFF064E3B)
+                              : const Color(0xFFD1FAE5))
                         : cardColor,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: _isSpoofed
-                          ? (isDark ? const Color(0xFF059669) : const Color(0xFF34D399))
+                          ? (isDark
+                                ? const Color(0xFF059669)
+                                : const Color(0xFF34D399))
                           : borderColor,
                     ),
                   ),
@@ -367,7 +322,9 @@ mv /etc/os-release.bak /etc/os-release
                       Icon(
                         _isSpoofed ? Icons.check_circle : Icons.info_outline,
                         color: _isSpoofed
-                            ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))
+                            ? (isDark
+                                  ? const Color(0xFF34D399)
+                                  : const Color(0xFF059669))
                             : subtleTextColor,
                       ),
                       const SizedBox(width: 12),
@@ -381,17 +338,23 @@ mv /etc/os-release.bak /etc/os-release
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 color: _isSpoofed
-                                    ? (isDark ? const Color(0xFFD1FAE5) : const Color(0xFF064E3B))
+                                    ? (isDark
+                                          ? const Color(0xFFD1FAE5)
+                                          : const Color(0xFF064E3B))
                                     : subtleTextColor,
                               ),
                             ),
                             Text(
-                              _isSpoofed ? 'Spoofed for Exam (Ubuntu 24.04)' : 'Native OS',
+                              _isSpoofed
+                                  ? 'Spoofed (Ubuntu 24.04)'
+                                  : 'Native OS',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: _isSpoofed
-                                    ? (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF065F46))
+                                    ? (isDark
+                                          ? const Color(0xFFA7F3D0)
+                                          : const Color(0xFF065F46))
                                     : textColor,
                               ),
                             ),
@@ -401,7 +364,7 @@ mv /etc/os-release.bak /etc/os-release
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
 
                 // Info Card
@@ -423,9 +386,14 @@ mv /etc/os-release.bak /etc/os-release
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
-                            border: Border(bottom: BorderSide(color: borderColor)),
+                            border: Border(
+                              bottom: BorderSide(color: borderColor),
+                            ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -439,7 +407,9 @@ mv /etc/os-release.bak /etc/os-release
                               ),
                               IconButton(
                                 icon: const Icon(Icons.refresh, size: 20),
-                                onPressed: _isLoading ? null : _loadOsReleaseInfo,
+                                onPressed: _isLoading
+                                    ? null
+                                    : _loadOsReleaseInfo,
                                 tooltip: 'Refresh',
                                 color: subtleTextColor,
                               ),
@@ -472,12 +442,16 @@ mv /etc/os-release.bak /etc/os-release
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: (_isLoading || _isAppRunning) ? null : _restoreOs,
+                        onPressed: (_isLoading || !_isSpoofed)
+                            ? null
+                            : _restoreOs,
                         icon: const Icon(Icons.restore),
-                        label: const Text('Manual Restore'),
+                        label: const Text('Restore Native OS'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           side: BorderSide(color: borderColor),
                           foregroundColor: textColor,
                         ),
@@ -485,20 +459,16 @@ mv /etc/os-release.bak /etc/os-release
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      flex: 2,
+                      flex: 1,
                       child: FilledButton.icon(
-                        onPressed: (_isLoading || _isAppRunning) ? null : _launchCodeTantra,
-                        icon: _isAppRunning 
-                            ? const SizedBox(
-                                width: 20, 
-                                height: 20, 
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                              )
-                            : const Icon(Icons.play_arrow),
-                        label: Text(_isAppRunning ? 'Running...' : 'Launch CodeTantra'),
+                        onPressed: (_isLoading || _isSpoofed) ? null : _spoofOs,
+                        icon: const Icon(Icons.swap_horiz),
+                        label: const Text('Spoof to Ubuntu'),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           backgroundColor: theme.colorScheme.primary,
                         ),
                       ),
