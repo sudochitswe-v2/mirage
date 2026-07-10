@@ -129,13 +129,18 @@ DISTRIB_DESCRIPTION="Ubuntu 24.04 LTS"''';
 
   Future<bool> _runPolkitCommand(String command) async {
     try {
-      final wrappers = ['pkexec', 'kdesu', 'kdesudo', 'lxqt-sudo'];
+      final wrappers = [
+        '/usr/bin/pkexec', 
+        '/usr/bin/kdesu', 
+        '/usr/lib/x86_64-linux-gnu/libexec/kf5/kdesu',
+        '/usr/bin/kdesudo', 
+        '/usr/bin/lxqt-sudo'
+      ];
       String? selectedWrapper;
 
       for (final wrapper in wrappers) {
-        final res = await Process.run('sh', ['-c', 'command -v $wrapper']);
-        if (res.exitCode == 0 && res.stdout.toString().trim().isNotEmpty) {
-          selectedWrapper = res.stdout.toString().trim();
+        if (File(wrapper).existsSync()) {
+          selectedWrapper = wrapper;
           break;
         }
       }
