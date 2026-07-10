@@ -24,6 +24,15 @@ The app provides a modern, minimalist interface to:
 - Flutter SDK (for building the app).
 - Polkit (`policykit-1`) or a compatible GUI sudo wrapper (`kdesu`, `zenity`, or `kdialog`).
 
+### Optional Dependencies
+
+For GUI privilege escalation, having one of the following installed is recommended:
+- `pkexec`
+- `kdesu`
+- `kdesu`
+- `kdesudo`
+- `lxqt-sudo`
+
 ## Getting Started
 
 1. Clone the repository.
