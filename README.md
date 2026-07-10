@@ -4,7 +4,7 @@ A sleek, lightweight Flutter utility for Linux that temporarily spoofs your oper
 
 ## Overview
 
-Mirage is designed for scenarios where a specific application (such as proprietary university exam software like CodeTantra) refuses to run because it strictly checks for a specific Linux distribution. Mirage elegantly bypasses these arbitrary restrictions by temporarily masking your host OS as **Ubuntu 24.04 LTS (Noble Numbat)**.
+Mirage is designed for scenarios where a specific application refuses to run because it strictly checks for a specific Linux distribution. Mirage elegantly bypasses these arbitrary restrictions by temporarily masking your host OS as **Ubuntu 24.04 LTS (Noble Numbat)**.
 
 The app provides a modern, minimalist interface to:
 1. View the live contents of your system's `/etc/os-release` file.
